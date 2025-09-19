@@ -1,0 +1,77 @@
+[
+  {
+    "id": "0-DOF-1",
+    "dof": 0,
+    "row": 1,
+    "freedomSpace": {
+      "elements": [
+        { "type": "createBoxOfParallelLines", "options": { "color": "#0000ff", "size": 1.8 } }
+      ]
+    },
+    "constraintSpace": {
+      "elements": [
+        { "type": "createSphere", "options": { "color": "#ffa500", "radius": 1.2 } }
+      ]
+    }
+  },
+  {
+    "id": "1-DOF-3",
+    "dof": 1,
+    "row": 3,
+    "freedomSpace": {
+      "elements": [
+        { "type": "createPlaneOfParallelLines", "options": { "color": "#0000ff", "size": 1.8, "divisions": 8 } }
+      ]
+    },
+    "constraintSpace": {
+      "elements": [
+        { "type": "createHoop", "options": { "color": "#ffa500", "height": 1.5, "radius": 0.8 } }
+      ]
+    }
+  },
+  {
+    "id": "2-DOF-9",
+    "dof": 2,
+    "row": 9,
+    "freedomSpace": {
+      "elements": [
+        { "type": "createCylindroid", "options": { "color": "#0000ff", "width": 1.5, "height": 1 } }
+      ]
+    },
+    "constraintSpace": {
+      "elements": [
+        { "type": "createCylindroid", "options": { "color": "#ffa500", "width": 1.5, "height": 1 } }
+      ]
+    }
+  },
+  {
+    "id": "3-DOF-14",
+    "dof": 3,
+    "row": 14,
+    "freedomSpace": {
+      "elements": [
+        { "type": "createHyperboloid", "options": { "color": "#00ff00", "height": 2 } }
+      ]
+    },
+    "constraintSpace": {
+      "elements": [
+        { "type": "createHyperboloid", "options": { "color": "#ff0000", "height": 2 } }
+      ]
+    }
+  },
+  {
+    "id": "6-DOF-1",
+    "dof": 6,
+    "row": 1,
+    "freedomSpace": {
+      "elements": [
+        { "type": "createSphere", "options": { "color": "#ff0000", "radius": 1.2 } }
+      ]
+    },
+    "constraintSpace": {
+      "elements": [
+        { "type": "createBoxOfParallelLines", "options": { "color": "#00ff00", "size": 1.8 } }
+      ]
+    }
+  }
+]
