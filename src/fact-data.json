@@ -25,7 +25,22 @@
     },
     "constraintSpace": {
       "elements": [
-        { "type": "createHoop", "options": { "color": "#ffa500", "height": 1.5, "radius": 0.8 } }
+        { "type": "createMoment", "options": { "start": [-1, 0, 0], "end": [1, 0, 0] } }
+      ]
+    }
+  },
+  {
+    "id": "2-DOF-7",
+    "dof": 2,
+    "row": 7,
+    "freedomSpace": {
+      "elements": [
+        { "type": "createCylindroid", "options": { "color": "#66ff66" } }
+      ]
+    },
+    "constraintSpace": {
+      "elements": [
+        { "type": "createCylindroid", "options": { "color": "#ffaa66" } }
       ]
     }
   },

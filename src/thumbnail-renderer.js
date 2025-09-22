@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import * as Shapes from './elemental-shapes.js';
+import { processOptions } from './data-helpers.js';
 
 // A single scene for generating all thumbnails
 const scene = new THREE.Scene();
@@ -41,7 +42,8 @@ export async function generateThumbnails(chartData) {
             continue;
         }
 
-        currentObject = shapeFunction(freedomData.options);
+        const processedOptions = processOptions(freedomData.options);
+        currentObject = shapeFunction(processedOptions);
         scene.add(currentObject);
         
         // Render and capture

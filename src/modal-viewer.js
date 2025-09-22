@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import * as Shapes from './elemental-shapes.js';
+import { processOptions } from './data-helpers.js'
 
 // Module state
 let controls;
@@ -12,6 +13,25 @@ let animationFrameId = null;
 const modalOverlay = document.getElementById('modal-overlay');
 const freedomCanvas = document.getElementById('freedom-canvas');
 const constraintCanvas = document.getElementById('constraint-canvas');
+
+function resizeRenderersToDisplaySize() {
+    const freedomRect = freedomCanvas.getBoundingClientRect();
+    const constraintRect = constraintCanvas.getBoundingClientRect();
+    const pixelRatio = window.devicePixelRatio;
+
+    // Check if the renderer's size is different from the canvas's display size
+    if (freedomRenderer.domElement.width !== freedomRect.width * pixelRatio || 
+        freedomRenderer.domElement.height !== freedomRect.height * pixelRatio) {
+        
+        // Adjust both renderers
+        freedomRenderer.setSize(freedomRect.width, freedomRect.height, false);
+        constraintRenderer.setSize(constraintRect.width, constraintRect.height, false);
+        
+        // Update the shared camera's aspect ratio
+        camera.aspect = freedomRect.width / freedomRect.height;
+        camera.updateProjectionMatrix();
+    }
+}
 
 // Utility function to create a scene and renderer
 function createScene(canvas) {
@@ -64,24 +84,23 @@ export function init() {
 
 // Show the modal and populate it with 3D models
 export function show(entryData) {
-    // Clean up previous models
     freedomScene.clear();
     constraintScene.clear();
-    // Re-add lights
     initLights(freedomScene);
     initLights(constraintScene);
 
-    // Create and add freedom space model
     const freedomElement = entryData.freedomSpace.elements[0];
-    const freedomShape = Shapes[freedomElement.type](freedomElement.options);
+    const processedFreedomOptions = processOptions(freedomElement.options);
+    const freedomShape = Shapes[freedomElement.type](processedFreedomOptions);
     freedomScene.add(freedomShape);
 
-    // Create and add constraint space model
     const constraintElement = entryData.constraintSpace.elements[0];
-    const constraintShape = Shapes[constraintElement.type](constraintElement.options);
+    const processedConstraintOptions = processOptions(constraintElement.options);
+    const constraintShape = Shapes[constraintElement.type](processedConstraintOptions);
     constraintScene.add(constraintShape);
     
     modalOverlay.classList.remove('hidden');
+    resizeRenderersToDisplaySize(); // Call the resize function right after making the modal visible!
     
     // Start the rendering loop
     if (animationFrameId) cancelAnimationFrame(animationFrameId);
