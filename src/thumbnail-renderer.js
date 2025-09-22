@@ -1,60 +1,59 @@
 import * as THREE from 'three';
 import * as Shapes from './elemental-shapes.js';
 
+// A single scene for generating all thumbnails
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xffffff); // White background for thumbnails
+
+const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 100);
+camera.position.set(0, 1, 4);
+camera.lookAt(0, 0, 0);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setSize(128, 128); // Small thumbnail size
+
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+scene.add(ambientLight);
+const directionalLight = new THREE.DirectionalLight(0xffffff, 0.3);
+directionalLight.position.set(2, 5, 5);
+scene.add(directionalLight);
+
 /**
- * Renders a 3D thumbnail of a FACT chart entry into a container element.
- * @param {HTMLElement} container - The div element to render the canvas into.
- * @param {object} spaceData - The freedomSpace or constraintSpace object from the JSON.
+ * Generates data URLs for all chart entry thumbnails.
+ * @param {Array} chartData - The data from fact-data.json
+ * @returns {Promise<Map<string, string>>} A map of entry IDs to image data URLs.
  */
-export function renderThumbnail(container, spaceData) {
-    // --- Basic Scene Setup ---
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 100);
-    camera.position.z = 3;
+export async function generateThumbnails(chartData) {
+    const thumbnailMap = new Map();
+    let currentObject = null;
 
-    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true }); // alpha:true for transparent background
-    renderer.setSize(container.clientWidth, container.clientHeight);
-    container.appendChild(renderer.domElement);
-
-    // --- Create the Shape ---
-    // This group will hold all the elemental shapes for this entry
-    const masterGroup = new THREE.Group();
-
-    // Loop through the elements defined in the JSON (even if there's only one)
-    spaceData.elements.forEach(element => {
-        const shapeType = element.type;
-        const shapeOptions = element.options;
-
-        // Check if the shape function exists in our library
-        if (Shapes[shapeType]) {
-            const shape = Shapes[shapeType](shapeOptions);
-            masterGroup.add(shape);
-        } else {
-            console.warn(`Shape type "${shapeType}" not found in elemental-shapes.js`);
+    for (const entry of chartData) {
+        if (currentObject) {
+            scene.remove(currentObject); // Clean up the previous object
         }
-    });
 
-    scene.add(masterGroup);
+        const freedomData = entry.freedomSpace.elements[0];
+        if (!freedomData) continue;
 
-    // --- Frame the Shape in the Camera ---
-    // This is a crucial step to make sure the object is visible and centered.
-    const box = new THREE.Box3().setFromObject(masterGroup);
-    const size = box.getSize(new THREE.Vector3());
-    const center = box.getCenter(new THREE.Vector3());
+        const shapeFunction = Shapes[freedomData.type];
+        if (typeof shapeFunction !== 'function') {
+            console.warn(`Shape function ${freedomData.type} not found.`);
+            continue;
+        }
 
-    masterGroup.position.x += masterGroup.position.x - center.x;
-    masterGroup.position.y += masterGroup.position.y - center.y;
-    masterGroup.position.z += masterGroup.position.z - center.z;
+        currentObject = shapeFunction(freedomData.options);
+        scene.add(currentObject);
+        
+        // Render and capture
+        renderer.render(scene, camera);
+        const url = renderer.domElement.toDataURL();
+        thumbnailMap.set(entry.id, url);
+    }
+    
+    // Clean up the last object
+    if (currentObject) {
+        scene.remove(currentObject);
+    }
 
-    const maxSize = Math.max(size.x, size.y, size.z);
-    const fitHeightDistance = maxSize / (2 * Math.atan(Math.PI * camera.aspect / 360));
-    const fitWidthDistance = fitHeightDistance / camera.aspect;
-    const distance = 1.5 * Math.max(fitHeightDistance, fitWidthDistance); // 1.5 is a padding factor
-
-    camera.position.z = distance;
-
-    // --- Static Render ---
-    // We don't need a continuous animation loop for a static thumbnail.
-    // We just render it once. This is much better for performance.
-    renderer.render(scene, camera);
+    return thumbnailMap;
 }

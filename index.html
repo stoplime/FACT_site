@@ -4,13 +4,27 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>FACT Chart</title>
-    <!-- We no longer need inline styles -->
   </head>
   <body>
-    <!-- This div is where our JavaScript will build the chart -->
+    <!-- The grid container (unchanged) -->
     <div id="fact-chart-container"></div>
 
-    <!-- The script remains the same -->
+    <!-- START: Modal Structure -->
+    <div id="modal-overlay" class="hidden">
+      <div id="modal-content">
+        <button id="modal-close-btn">&times;</button>
+        <div class="viewer-container">
+          <h3>Freedom Space</h3>
+          <canvas id="freedom-canvas"></canvas>
+        </div>
+        <div class="viewer-container">
+          <h3>Constraint Space</h3>
+          <canvas id="constraint-canvas"></canvas>
+        </div>
+      </div>
+    </div>
+    <!-- END: Modal Structure -->
+
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>
