@@ -1,61 +1,55 @@
+// src/thumbnail-renderer.js
 import * as THREE from 'three';
-import * as Shapes from './elemental-shapes.js';
-import { processOptions } from './data-helpers.js';
+// NEW: Import our new helpers
+import { createStandardScene, populateSceneFromElements } from './scene-helpers.js';
 
-// A single scene for generating all thumbnails
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xffffff); // White background for thumbnails
+// --- NEW SETUP ---
+const THUMB_WIDTH = 128;
+const THUMB_HEIGHT = 128;
 
-const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 100);
+// Create two separate scenes, one for each space
+const freedomScene = createStandardScene(null);
+const constraintScene = createStandardScene(null);
+
+const camera = new THREE.PerspectiveCamera(50, THUMB_WIDTH / THUMB_HEIGHT, 0.1, 100);
 camera.position.set(0, 1, 4);
 camera.lookAt(0, 0, 0);
 
+// The renderer's canvas is now double-width
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-renderer.setSize(128, 128); // Small thumbnail size
+renderer.setSize(THUMB_WIDTH * 2, THUMB_HEIGHT);
+renderer.autoClear = false;
+renderer.setClearColor(0xffffff, 1); 
 
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
-scene.add(ambientLight);
-const directionalLight = new THREE.DirectionalLight(0xffffff, 0.3);
-directionalLight.position.set(2, 5, 5);
-scene.add(directionalLight);
+// We need a 2D canvas to combine the two renderings
+const finalCanvas = document.createElement('canvas');
+finalCanvas.width = THUMB_WIDTH * 2;
+finalCanvas.height = THUMB_HEIGHT;
+const ctx = finalCanvas.getContext('2d');
 
-/**
- * Generates data URLs for all chart entry thumbnails.
- * @param {Array} chartData - The data from fact-data.json
- * @returns {Promise<Map<string, string>>} A map of entry IDs to image data URLs.
- */
 export async function generateThumbnails(chartData) {
     const thumbnailMap = new Map();
-    let currentObject = null;
 
     for (const entry of chartData) {
-        if (currentObject) {
-            scene.remove(currentObject); // Clean up the previous object
-        }
+        renderer.clear();
+        // 1. Populate both scenes using the helper function
+        populateSceneFromElements(freedomScene, entry.freedomSpace.elements);
+        populateSceneFromElements(constraintScene, entry.constraintSpace.elements);
 
-        const freedomData = entry.freedomSpace.elements[0];
-        if (!freedomData) continue;
-
-        const shapeFunction = Shapes[freedomData.type];
-        if (typeof shapeFunction !== 'function') {
-            console.warn(`Shape function ${freedomData.type} not found.`);
-            continue;
-        }
-
-        const processedOptions = processOptions(freedomData.options);
-        currentObject = shapeFunction(processedOptions);
-        scene.add(currentObject);
+        // 2. Render the Freedom Space
+        renderer.setViewport(0, 0, THUMB_WIDTH, THUMB_HEIGHT); // Render on the left half
+        renderer.render(freedomScene, camera);
         
-        // Render and capture
-        renderer.render(scene, camera);
-        const url = renderer.domElement.toDataURL();
+        // 3. Render the Constraint Space
+        renderer.setViewport(THUMB_WIDTH, 0, THUMB_WIDTH, THUMB_HEIGHT); // Render on the right half
+        renderer.render(constraintScene, camera);
+        
+        // 4. Copy the combined WebGL render to our 2D canvas and get the data URL
+        ctx.clearRect(0, 0, finalCanvas.width, finalCanvas.height);
+        ctx.drawImage(renderer.domElement, 0, 0);
+        const url = finalCanvas.toDataURL();
         thumbnailMap.set(entry.id, url);
     }
     
-    // Clean up the last object
-    if (currentObject) {
-        scene.remove(currentObject);
-    }
-
     return thumbnailMap;
 }

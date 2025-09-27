@@ -5,12 +5,52 @@
     "row": 1,
     "freedomSpace": {
       "elements": [
-        { "type": "createBoxOfParallelLines", "options": { "color": "#0000ff", "size": 1.8 } }
+        { "type": "createBoxOfParallelLines", "options": { "color": "#0000ff", "divisions": 0, "size": 1.8 } }
       ]
     },
     "constraintSpace": {
       "elements": [
-        { "type": "createSphere", "options": { "color": "#ffa500", "radius": 1.2 } }
+        { "type": "createSphere", "options": { "color": "#000000", "radius": 0.6, "lineCount": 16, "lineType": "moment" } },
+        { "type": "createColoredBox", "options": { "color": "#0000ff", "size": 1.8} }
+      ]
+    }
+  },
+  {
+    "id": "1-DOF-1",
+    "dof": 1,
+    "row": 1,
+    "freedomSpace": {
+      "elements": [
+        { "type": "createLine", "options": { "start": [0, 1.5, 0], "end": [0, -1.5, 0], "color": "#ff0000"} }
+      ]
+    },
+    "constraintSpace": {
+      "elements": [
+        { "type": "createDisk", "options": { "radius": 1.0, "lineType": "moment", "normal": [0, 1, 0]} },
+        { "type": "createDashedLine", "options": { "start": [0, 1.5, 0], "end": [0, -1.5, 0] } },
+        { "type": "createPlane", "options": { "color": "#0000ff", "size": 2.2, "normal": [1, 0, 0]} },
+        { "type": "createPlane", "options": { "color": "#0000ff", "size": 2.2, "normal": [0, 0, 1]} },
+        { "type": "createPlane", "options": { "color": "#0000ff", "size": 2.2, "normal": [0.5, 0, 0.5]} },
+        { "type": "createPlane", "options": { "color": "#0000ff", "size": 2.2, "normal": [-0.5, 0, 0.5]} }
+      ]
+    }
+  },
+  {
+    "id": "1-DOF-2",
+    "dof": 1,
+    "row": 2,
+    "freedomSpace": {
+      "elements": [
+        { "type": "createLine", "options": { "start": [0, 1.5, 0], "end": [0, -1.5, 0], "color": "#00ff00"} }
+      ]
+    },
+    "constraintSpace": {
+      "elements": [
+        { "type": "createDisk", "options": { "radius": 1.0, "lineType": "moment", "normal": [0, 1, 0]} },
+        { "type": "createDashedLine", "options": { "start": [0, 1.5, 0], "end": [0, -1.5, 0] } },
+        { "type": "createHyperboloid", "options": { "color": "#0000ff", "height": 2.1, "twistAngle": -1.1, "radiusX": 0.8, "radiusZ": 0.8} },
+        { "type": "createHyperboloid", "options": { "color": "#0000ff", "height": 1.6, "twistAngle": -1.6, "radiusX": 1.0, "radiusZ": 1.0} },
+        { "type": "createHyperboloid", "options": { "color": "#0000ff", "height": 1.1, "twistAngle": -2.1, "radiusX": 1.3, "radiusZ": 1.3} }
       ]
     }
   },
@@ -20,12 +60,17 @@
     "row": 3,
     "freedomSpace": {
       "elements": [
-        { "type": "createPlaneOfParallelLines", "options": { "color": "#0000ff", "size": 1.8, "divisions": 8 } }
+        { "type": "createTranslation", "options": { "start": [0, 1.5, 0], "end": [0, -1.5, 0]} }
       ]
     },
     "constraintSpace": {
       "elements": [
-        { "type": "createMoment", "options": { "start": [-1, 0, 0], "end": [1, 0, 0] } }
+        { "type": "createSphere", "options": { "color": "#000000", "radius": 0.8, "lineCount": 20, "lineType": "moment" } },
+        { "type": "createPlane", "options": { "color": "#0000ff", "size": 2.2, "normal": [0, 1, 0]}, "position": [0, 0, 0] },
+        { "type": "createPlane", "options": { "color": "#0000ff", "size": 2.2, "normal": [0, 1, 0]}, "position": [0, 0.5, 0] },
+        { "type": "createPlane", "options": { "color": "#0000ff", "size": 2.2, "normal": [0, 1, 0]}, "position": [0, 1, 0] },
+        { "type": "createPlane", "options": { "color": "#0000ff", "size": 2.2, "normal": [0, 1, 0]}, "position": [0, -0.5, 0] },
+        { "type": "createPlane", "options": { "color": "#0000ff", "size": 2.2, "normal": [0, 1, 0]}, "position": [0, -1, 0] }
       ]
     }
   },
@@ -65,12 +110,40 @@
     "row": 14,
     "freedomSpace": {
       "elements": [
-        { "type": "createHyperboloid", "options": { "color": "#00ff00", "height": 2 } }
+        { "type": "createHyperboloid", "options": { "color": "#ff0000", "height": 2.1, "twistAngle": 1.1, "radiusX": 0.8, "radiusZ": 0.8} },
+        { "type": "createHyperboloid", "options": { "color": "#ff0000", "height": 1.6, "twistAngle": 1.6, "radiusX": 1.0, "radiusZ": 1.0} },
+        { "type": "createHyperboloid", "options": { "color": "#ff0000", "height": 1.1, "twistAngle": 2.1, "radiusX": 1.3, "radiusZ": 1.3} }
       ]
     },
     "constraintSpace": {
       "elements": [
-        { "type": "createHyperboloid", "options": { "color": "#ff0000", "height": 2 } }
+        { "type": "createHyperboloid", "options": { "color": "#0000ff", "height": 2.1, "twistAngle": -1.1, "radiusX": 0.8, "radiusZ": 0.8} },
+        { "type": "createHyperboloid", "options": { "color": "#0000ff", "height": 1.6, "twistAngle": -1.6, "radiusX": 1.0, "radiusZ": 1.0} },
+        { "type": "createHyperboloid", "options": { "color": "#0000ff", "height": 1.1, "twistAngle": -2.1, "radiusX": 1.3, "radiusZ": 1.3} }
+      ]
+    }
+  },
+  {
+    "id": "3-DOF-15",
+    "dof": 3,
+    "row": 15,
+    "freedomSpace": {
+      "elements": [
+        { 
+          "type": "createSphere", 
+          "options": { "color": "#00ff00", "radius": 0.5 },
+          "position": [0, 1, 0]
+        },
+        { 
+          "type": "createSphere", 
+          "options": { "color": "#0000ff", "radius": 0.5 },
+          "position": [0, -1, 0]
+        }
+      ]
+    },
+    "constraintSpace": {
+      "elements": [
+        { "type": "createLine", "options": { "start": [-1,0,0], "end": [1,0,0], "color": "#ff0000" } }
       ]
     }
   },

@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import * as Shapes from './elemental-shapes.js';
-import { processOptions } from './data-helpers.js'
+import { createStandardScene, populateSceneFromElements } from './scene-helpers.js';
 
 // Module state
 let controls;
@@ -58,18 +57,15 @@ function animate() {
 
 // Initialize the modal and its events
 export function init() {
-    const { scene: fs, renderer: fr } = createScene(freedomCanvas);
-    freedomScene = fs;
-    freedomRenderer = fr;
+    freedomScene = createStandardScene(0xddeeff);
+    constraintScene = createStandardScene(0xddeeff);
 
-    const { scene: cs, renderer: cr } = createScene(constraintCanvas);
-    constraintScene = cs;
-    constraintRenderer = cr;
+    freedomRenderer = new THREE.WebGLRenderer({ canvas: freedomCanvas, antialias: true });
+    constraintRenderer = new THREE.WebGLRenderer({ canvas: constraintCanvas, antialias: true });
 
     camera = new THREE.PerspectiveCamera(50, 1, 0.1, 100);
     camera.position.set(0, 1.5, 5);
     
-    // CRUCIAL: One set of controls for the shared camera, attached to one canvas
     controls = new OrbitControls(camera, freedomRenderer.domElement);
     controls.enableDamping = true;
 
@@ -84,25 +80,12 @@ export function init() {
 
 // Show the modal and populate it with 3D models
 export function show(entryData) {
-    freedomScene.clear();
-    constraintScene.clear();
-    initLights(freedomScene);
-    initLights(constraintScene);
-
-    const freedomElement = entryData.freedomSpace.elements[0];
-    const processedFreedomOptions = processOptions(freedomElement.options);
-    const freedomShape = Shapes[freedomElement.type](processedFreedomOptions);
-    freedomScene.add(freedomShape);
-
-    const constraintElement = entryData.constraintSpace.elements[0];
-    const processedConstraintOptions = processOptions(constraintElement.options);
-    const constraintShape = Shapes[constraintElement.type](processedConstraintOptions);
-    constraintScene.add(constraintShape);
+    populateSceneFromElements(freedomScene, entryData.freedomSpace.elements);
+    populateSceneFromElements(constraintScene, entryData.constraintSpace.elements);
     
     modalOverlay.classList.remove('hidden');
-    resizeRenderersToDisplaySize(); // Call the resize function right after making the modal visible!
+    resizeRenderersToDisplaySize();
     
-    // Start the rendering loop
     if (animationFrameId) cancelAnimationFrame(animationFrameId);
     animate();
 }

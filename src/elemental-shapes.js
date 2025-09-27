@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { ParametricGeometry } from 'three/examples/jsm/geometries/ParametricGeometry.js'; 
 
 // Helper for materials
 const lineMaterial = (color) => new THREE.LineBasicMaterial({ color: color });
@@ -6,7 +7,7 @@ const lineMaterial = (color) => new THREE.LineBasicMaterial({ color: color });
 // --- NEW: ADVANCED HELPER FUNCTIONS ---
 
 /** Creates a dashed line. Note: The parent object must have .computeLineDistances() called. */
-function createDashedLine({ start, end, color = 0x000000, dashSize = 0.1, gapSize = 0.1 }) {
+export function createDashedLine({ start, end, color = 0x000000, dashSize = 0.1, gapSize = 0.1 }) {
     const geometry = new THREE.BufferGeometry().setFromPoints([start, end]);
     const material = new THREE.LineDashedMaterial({ color, dashSize, gapSize, scale: 1 });
     const line = new THREE.Line(geometry, material);
@@ -68,6 +69,7 @@ function createBoldLine({ start, end, color = 0x000000, radius = 0.02 }) {
 }
 
 
+
 // --- Elemental Shapes ---
 
 /** 1: A simple line */
@@ -77,71 +79,108 @@ export function createLine({ start, end, color = 0x000000 }) {
     return new THREE.Line(geometry, material);
 }
 
-/** 2: A disk (radial lines) with outline and translucency */
-export function createDisk({ radius = 1, lineCount = 12, color = 0x000000 }) {
+/** 2: A disk that can be oriented in any direction via a normal vector. */
+export function createDisk({ radius = 1, lineCount = 12, color = 0x000000, lineType = 'line', normal = null }) {
     const group = new THREE.Group();
-    // Translucent filled plane
+    
+    // Translucent filled plane and black outline (logic is unchanged).
     const planeGeom = new THREE.CircleGeometry(radius, 32);
     const planeMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.2, side: THREE.DoubleSide });
     group.add(new THREE.Mesh(planeGeom, planeMat));
-
-    // Black outline
     const outlineGeom = new THREE.RingGeometry(radius, radius, 64);
     const outlineMat = new THREE.LineBasicMaterial({ color: 0x000000 });
     const outline = new THREE.Line(outlineGeom, outlineMat);
     group.add(outline);
     
-    // Radial lines
+    // Radial lines logic is unchanged.
     const center = new THREE.Vector3(0, 0, 0);
     for (let i = 0; i < lineCount; i++) {
         const angle = (i / lineCount) * Math.PI * 2;
         const edge = new THREE.Vector3(radius * Math.cos(angle), radius * Math.sin(angle), 0);
-        group.add(createLine({ start: center, end: edge, color }));
+        
+        let radiatingElement;
+        switch (lineType) {
+            case 'translation':
+                radiatingElement = createTranslation({ start: center, end: edge });
+                break;
+            case 'moment':
+                radiatingElement = createMoment({ start: center, end: edge });
+                break;
+            default:
+                radiatingElement = createLine({ start: center, end: edge, color: color });
+                break;
+        }
+        group.add(radiatingElement);
     }
+
+    // --- NEW: Orientation Logic ---
+    // If a normal vector is provided, orient the entire group to face that direction.
+    if (normal) {
+        // The default orientation of our disk is facing the positive Z axis.
+        const defaultNormal = new THREE.Vector3(0, 0, 1);
+        
+        // Ensure the target normal is a unit vector.
+        normal.normalize();
+
+        // Calculate the rotation needed to go from the default normal to the target normal.
+        const orientation = new THREE.Quaternion().setFromUnitVectors(defaultNormal, normal);
+        
+        // Apply the rotation to the entire group.
+        group.quaternion.copy(orientation);
+    }
+    
     return group;
 }
 
-/** 3: A plane (single translucent surface with colored border) */
-export function createPlane({ size = 2, color = 0x000000 }) {
+/** 3: A plane that can be oriented in any direction via a normal vector. */
+export function createPlane({ size = 2, color = 0x000000, normal = null }) {
     const group = new THREE.Group();
-    const halfSize = size / 2;
-    // Translucent surface
+    
+    // Translucent surface and colored edges (logic is unchanged).
     const planeGeom = new THREE.PlaneGeometry(size, size);
     const planeMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.2, side: THREE.DoubleSide });
     group.add(new THREE.Mesh(planeGeom, planeMat));
-
-    // Colored Edges
     const edgesGeom = new THREE.EdgesGeometry(planeGeom);
     const edgesMat = new THREE.LineBasicMaterial({ color });
     group.add(new THREE.LineSegments(edgesGeom, edgesMat));
     
+    // --- NEW: Orientation Logic ---
+    if (normal) {
+        const defaultNormal = new THREE.Vector3(0, 0, 1);
+        normal.normalize();
+        const orientation = new THREE.Quaternion().setFromUnitVectors(defaultNormal, normal);
+        group.quaternion.copy(orientation);
+    }
+    
     return group;
 }
 
-/** 4: A plane of parallel lines with outline and translucency */
-export function createPlaneOfParallelLines({ size = 2, divisions = 10, color = 0x000000 }) {
+/** 4: A plane of parallel lines that can be oriented via a normal vector. */
+export function createPlaneOfParallelLines({ size = 2, divisions = 10, color = 0x000000, normal = null }) {
     const group = new THREE.Group();
     const halfSize = size / 2;
-    // Translucent background plane
+    
+    // Background plane, outline, and parallel lines (logic is unchanged).
     const planeGeom = new THREE.PlaneGeometry(size, size);
     const planeMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.1, side: THREE.DoubleSide });
     group.add(new THREE.Mesh(planeGeom, planeMat));
-    
-    // Black outline
-    const outline = new THREE.LineSegments(
-        new THREE.EdgesGeometry(planeGeom), 
-        new THREE.LineBasicMaterial({ color: 0x000000 })
-    );
+    const outline = new THREE.LineSegments(new THREE.EdgesGeometry(planeGeom), new THREE.LineBasicMaterial({ color: 0x000000 }));
     group.add(outline);
-
-    // Parallel lines
     for (let i = 0; i <= divisions; i++) {
         const pos = -halfSize + (i / divisions) * size;
         group.add(createLine({ start: new THREE.Vector3(pos, -halfSize, 0), end: new THREE.Vector3(pos, halfSize, 0), color }));
     }
+
+    // --- NEW: Orientation Logic ---
+    if (normal) {
+        const defaultNormal = new THREE.Vector3(0, 0, 1);
+        normal.normalize();
+        const orientation = new THREE.Quaternion().setFromUnitVectors(defaultNormal, normal);
+        group.quaternion.copy(orientation);
+    }
+    
     return group;
 }
-
 
 /** 5: A box of parallel lines with black wireframe outline */
 export function createBoxOfParallelLines({ size = 2, divisions = 4, color = 0x000000 }) {
@@ -176,6 +215,17 @@ export function createBoxOfParallelLines({ size = 2, divisions = 4, color = 0x00
     }
     
     return group;
+}
+
+/** 5B: A box wireframe outline */
+export function createColoredBox({ size = 2, color = 0x000000 }) {
+    const boxGeometry = new THREE.BoxGeometry(size, size, size);
+    const edgesGeometry = new THREE.EdgesGeometry(boxGeometry);
+    const edgeMaterial = new THREE.LineBasicMaterial({ color: color });
+    const wireframe = new THREE.LineSegments(edgesGeometry, edgeMaterial);
+    
+    // This shape is simple enough that it doesn't need a group, we can return the LineSegments directly.
+    return wireframe;
 }
 
 /** 6A: NEW - A translation vector (bold black line with arrows) */
@@ -229,42 +279,52 @@ export function createMoment({ start, end }) {
     return group;
 }
 
-/** 7: A sphere with black wireframe and equatorial ring */
-export function createSphere({ radius = 1, lineCount = 20, color = 0x000000 }) {
+/** 7: A sphere that can render radiating lines, translations, or moments. */
+export function createSphere({ radius = 1, lineCount = 30, color = 0x000000, lineType = 'line' }) {
     const group = new THREE.Group();
+    
+    // Create the three black orthogonal rings (this logic is unchanged).
     const ringMaterial = new THREE.LineBasicMaterial({ color: 0x000000 });
-
-    // 1. Equatorial Ring (horizontal, in the XZ plane)
     const equatorialGeom = new THREE.RingGeometry(radius, radius, 64);
     const equatorialRing = new THREE.Line(equatorialGeom, ringMaterial);
-    equatorialRing.rotation.x = Math.PI / 2; // Rotate to be flat
+    equatorialRing.rotation.x = Math.PI / 2;
     group.add(equatorialRing);
-
-    // 2. Sagittal Ring (vertical, in the YZ plane)
     const sagittalGeom = new THREE.RingGeometry(radius, radius, 64);
     const sagittalRing = new THREE.Line(sagittalGeom, ringMaterial);
-    // No rotation needed, it's already vertical facing the camera
     group.add(sagittalRing);
-
-    // 3. Coronal Ring (vertical, in the XY plane)
     const coronalGeom = new THREE.RingGeometry(radius, radius, 64);
     const coronalRing = new THREE.Line(coronalGeom, ringMaterial);
-    coronalRing.rotation.y = Math.PI / 2; // Rotate to be side-on
+    coronalRing.rotation.y = Math.PI / 2;
     group.add(coronalRing);
     
-    // Radiating lines
+    // --- KEY CHANGE: Logic to create different types of radiating lines ---
     const center = new THREE.Vector3(0, 0, 0);
-    const phi = Math.PI * (3. - Math.sqrt(5.));
+    const phi = Math.PI * (3. - Math.sqrt(5.)); // Golden angle
+
     for (let i = 0; i < lineCount; i++) {
         const y = 1 - (i / (lineCount - 1)) * 2;
         const radiusAtY = Math.sqrt(1 - y * y);
         const theta = phi * i;
-        const point = new THREE.Vector3(Math.cos(theta) * radiusAtY, y, Math.sin(theta) * radiusAtY).multiplyScalar(radius);
-        group.add(createLine({ start: center, end: point, color }));
-        const theta2 = theta + Math.PI; // Opposite side
-        const point2 = new THREE.Vector3(Math.cos(theta2) * radiusAtY, y, Math.sin(theta2) * radiusAtY).multiplyScalar(radius);
-        group.add(createLine({ start: center, end: point2, color }));
+        const pointOnSphere = new THREE.Vector3(Math.cos(theta) * radiusAtY, y, Math.sin(theta) * radiusAtY).multiplyScalar(radius);
+        
+        let radiatingElement;
+        
+        // Use a switch statement to decide which shape to create
+        switch (lineType) {
+            case 'translation':
+                radiatingElement = createTranslation({ start: center, end: pointOnSphere });
+                break;
+            case 'moment':
+                radiatingElement = createMoment({ start: center, end: pointOnSphere });
+                break;
+            default: // 'line' or any other value
+                radiatingElement = createLine({ start: center, end: pointOnSphere, color: color });
+                break;
+        }
+        
+        group.add(radiatingElement);
     }
+
     return group;
 }
 
@@ -348,28 +408,83 @@ export function createHyperbolicParaboloid({ size = 2, divisions = 10, color = 0
 }
 
 /** 11 & 12: A hyperboloid (circular and elliptical) */
-export function createHyperboloid({ radiusX = 1, radiusZ = 1, height = 2, lineCount = 24, twistAngle = Math.PI / 4, color = 0x000000 }) {
+export function createHyperboloid({ radiusX = 1, radiusZ = 1, height = 2, lineCount = 16, twistAngle = Math.PI / 4, color = 0x000000 }) {
     const group = new THREE.Group();
     const halfHeight = height / 2;
-    // A hyperboloid is also doubly ruled. We can generate it by connecting
-    // two circles/ellipses with a twist.
-    for (let i = 0; i < lineCount; i++) {
+
+    // --- NEW: Create the translucent surface from custom geometry ---
+    const surfaceGeometry = new THREE.BufferGeometry();
+    const vertices = [];
+    const indices = [];
+
+    // Define vertices on top and bottom ellipses
+    for (let i = 0; i <= lineCount; i++) {
         const angle1 = (i / lineCount) * Math.PI * 2;
         const angle2 = angle1 + twistAngle;
 
-        // Top ellipse
-        const start = new THREE.Vector3(
-            radiusX * Math.cos(angle1), 
-            halfHeight, 
-            radiusZ * Math.sin(angle1)
-        );
-        // Bottom ellipse
-        const end = new THREE.Vector3(
-            radiusX * Math.cos(angle2), 
-            -halfHeight, 
-            radiusZ * Math.sin(angle2)
-        );
+        if (twistAngle >= 0) {
+            // Add bottom vertex
+            vertices.push(radiusX * Math.cos(angle2), -halfHeight, radiusZ * Math.sin(angle2));
+            // Add top vertex
+            vertices.push(radiusX * Math.cos(angle1), halfHeight, radiusZ * Math.sin(angle1));
+        }
+        else {
+            // Add top vertex
+            vertices.push(radiusX * Math.cos(angle1), halfHeight, radiusZ * Math.sin(angle1));
+            // Add bottom vertex
+            vertices.push(radiusX * Math.cos(angle2), -halfHeight, radiusZ * Math.sin(angle2));
+        }
+    }
+
+    // Define the faces (triangles) that connect the vertices
+    // For each segment, we create two triangles to form a quad.
+    for (let i = 0; i < lineCount; i++) {
+        const topLeft = i * 2;
+        const botLeft = i * 2 + 1;
+        const topRight = (i + 1) * 2;
+        const botRight = (i + 1) * 2 + 1;
+
+        // Triangle 1: top-left -> bottom-left -> top-right
+        indices.push(topLeft, botLeft, topRight);
+        // Triangle 2: bottom-left -> bottom-right -> top-right
+        indices.push(botLeft, botRight, topRight);
+    }
+
+    surfaceGeometry.setIndex(indices);
+    surfaceGeometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+    
+    const surfaceMaterial = new THREE.MeshBasicMaterial({
+        color: "#ffffff",
+        transparent: true,
+        opacity: 0.6, // A slightly higher opacity might look better now
+        side: THREE.DoubleSide
+    });
+    const surface = new THREE.Mesh(surfaceGeometry, surfaceMaterial);
+    group.add(surface);
+    // --- END NEW SURFACE ---
+
+    // Draw the ruling lines (this is unchanged and now matches the surface edges)
+    for (let i = 0; i < lineCount; i++) {
+        const angle1 = (i / lineCount) * Math.PI * 2;
+        const angle2 = angle1 + twistAngle;
+        const start = new THREE.Vector3(radiusX * Math.cos(angle1), halfHeight, radiusZ * Math.sin(angle1));
+        const end = new THREE.Vector3(radiusX * Math.cos(angle2), -halfHeight, radiusZ * Math.sin(angle2));
         group.add(createLine({ start, end, color }));
     }
+
+    // Create the black rings for the ends (this logic is unchanged).
+    const ringMaterial = new THREE.LineBasicMaterial({ color: 0x000000 });
+    const curve = new THREE.EllipseCurve(0, 0, radiusX, radiusZ, 0, 2 * Math.PI, false, 0);
+    const points = curve.getPoints(64);
+    const ringGeometry = new THREE.BufferGeometry().setFromPoints(points);
+    const topRing = new THREE.Line(ringGeometry, ringMaterial);
+    topRing.position.y = halfHeight;
+    topRing.rotation.x = Math.PI / 2;
+    group.add(topRing);
+    const bottomRing = new THREE.Line(ringGeometry, ringMaterial);
+    bottomRing.position.y = -halfHeight;
+    bottomRing.rotation.x = Math.PI / 2;
+    group.add(bottomRing);
+
     return group;
 }
