@@ -55,7 +55,7 @@ function createTorqueArrow({ color = 0x000000, radius = 0.15, tube = 0.02 }) {
 }
 
 /** Creates a "bold" line using a thin cylinder, more reliable than linewidth. */
-function createBoldLine({ start, end, color = 0x000000, radius = 0.02 }) {
+function createBoldLine({ start, end, color = 0x000000, radius = 0.01 }) {
     const direction = new THREE.Vector3().subVectors(end, start);
     const length = direction.length();
     const geometry = new THREE.CylinderGeometry(radius, radius, length, 16);
@@ -73,10 +73,17 @@ function createBoldLine({ start, end, color = 0x000000, radius = 0.02 }) {
 // --- Elemental Shapes ---
 
 /** 1: A simple line */
-export function createLine({ start, end, color = 0x000000 }) {
-    const geometry = new THREE.BufferGeometry().setFromPoints([start, end]);
-    const material = new THREE.LineBasicMaterial({ color: color });
-    return new THREE.Line(geometry, material);
+export function createLine({ start, end, color = 0x000000, radius = 0.01 }) {
+    const direction = new THREE.Vector3().subVectors(end, start);
+    const length = direction.length();
+    const geometry = new THREE.CylinderGeometry(radius, radius, length, 16);
+    const material = new THREE.MeshBasicMaterial({ color });
+    const cylinder = new THREE.Mesh(geometry, material);
+
+    cylinder.position.copy(start).add(direction.multiplyScalar(0.5));
+    cylinder.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction.normalize());
+    
+    return cylinder;
 }
 
 /** 2: A disk that can be oriented in any direction via a normal vector. */
@@ -101,10 +108,10 @@ export function createDisk({ radius = 1, lineCount = 12, color = 0x000000, lineT
         let radiatingElement;
         switch (lineType) {
             case 'translation':
-                radiatingElement = createTranslation({ start: center, end: edge });
+                radiatingElement = createTranslation({ start: center, end: edge, only_end: true, radius: 0.01 });
                 break;
             case 'moment':
-                radiatingElement = createMoment({ start: center, end: edge });
+                radiatingElement = createMoment({ start: center, end: edge, only_end: true, radius: 0.01 });
                 break;
             default:
                 radiatingElement = createLine({ start: center, end: edge, color: color });
@@ -229,34 +236,36 @@ export function createColoredBox({ size = 2, color = 0x000000 }) {
 }
 
 /** 6A: NEW - A translation vector (bold black line with arrows) */
-export function createTranslation({ start, end }) {
+export function createTranslation({ start, end, only_end = false, radius = 0.02 }) {
     const group = new THREE.Group();
     const color = 0x000000; // Translations are always black
-    group.add(createBoldLine({ start, end, color }));
+    group.add(createLine({ start, end, color, radius: radius }));
 
     const dir = new THREE.Vector3().subVectors(end, start).normalize();
-    const arrowhead1 = createArrowhead({ color });
+    const arrowhead1 = createArrowhead({ color, radius: radius * 4 });
     arrowhead1.position.copy(end);
     arrowhead1.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
     group.add(arrowhead1);
 
-    const arrowhead2 = createArrowhead({ color });
-    arrowhead2.position.copy(start);
-    arrowhead2.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.negate());
-    group.add(arrowhead2);
+    if (!only_end) {
+        const arrowhead2 = createArrowhead({ color, radius: radius * 4 });
+        arrowhead2.position.copy(start);
+        arrowhead2.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.negate());
+        group.add(arrowhead2);
+    }
 
     return group;
 }
 
 /** 6B: NEW - A moment/torque vector (bold black line with torque arrows) */
-export function createMoment({ start, end }) {
+export function createMoment({ start, end, only_end = false, radius = 0.02 }) {
     const group = new THREE.Group();
     const color = 0x000000;
-    group.add(createBoldLine({ start, end, color }));
+    group.add(createLine({ start, end, color, radius: radius }));
 
     // --- The crucial orientation logic ---
-    const torqueArrow1 = createTorqueArrow({ color });
-    const torqueArrow2 = createTorqueArrow({ color });
+    const torqueArrow1 = createTorqueArrow({ color, tube: radius });
+    const torqueArrow2 = createTorqueArrow({ color, tube: radius });
 
     // Calculate the direction of the line
     const direction = new THREE.Vector3().subVectors(end, start).normalize();
@@ -269,13 +278,14 @@ export function createMoment({ start, end }) {
     // Apply the orientation and position to both symbols
     torqueArrow1.quaternion.copy(orientation);
     torqueArrow1.position.copy(end);
-
-    torqueArrow2.quaternion.copy(orientation);
-    torqueArrow2.position.copy(start);
-
     group.add(torqueArrow1);
-    group.add(torqueArrow2);
-    
+
+    if (!only_end) {
+        torqueArrow2.quaternion.copy(orientation);
+        torqueArrow2.position.copy(start);
+        group.add(torqueArrow2);
+    }
+
     return group;
 }
 
@@ -312,10 +322,10 @@ export function createSphere({ radius = 1, lineCount = 30, color = 0x000000, lin
         // Use a switch statement to decide which shape to create
         switch (lineType) {
             case 'translation':
-                radiatingElement = createTranslation({ start: center, end: pointOnSphere });
+                radiatingElement = createTranslation({ start: center, end: pointOnSphere, only_end: true, radius: 0.01 });
                 break;
             case 'moment':
-                radiatingElement = createMoment({ start: center, end: pointOnSphere });
+                radiatingElement = createMoment({ start: center, end: pointOnSphere, only_end: true, radius: 0.01 });
                 break;
             default: // 'line' or any other value
                 radiatingElement = createLine({ start: center, end: pointOnSphere, color: color });
